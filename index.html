@@ -40,12 +40,19 @@
     }
     #pieces {
       display: flex;
-      gap: 20px;
+      gap: 10px;
+      flex-wrap: nowrap;
+      justify-content: center;
+      max-width: 100%;
     }
     .piece {
       display: grid;
       gap: 2px;
       cursor: grab;
+      padding: 4px;
+      background: #111;
+      border: 1px solid #555;
+      border-radius: 4px;
     }
     .block {
       width: 20px;
@@ -71,6 +78,7 @@
     let cells = [];
     let score = 0;
     let draggedShape = null;
+    let currentPieceElement = null;
     let usedPieces = 0;
 
     for (let i = 0; i < gridSize * gridSize; i++) {
@@ -104,15 +112,16 @@
       div.draggable = true;
       div.addEventListener('dragstart', e => {
         draggedShape = shape;
+        currentPieceElement = div;
         div.classList.add('dragging');
       });
-      div.addEventListener('dragend', () => {
+      div.addEventListener('dragend', e => {
+        draggedShape = null;
+        currentPieceElement = null;
         clearPreview();
-        div.remove();
-        usedPieces++;
-        if (usedPieces === 3) {
-          spawnPieces();
-          usedPieces = 0;
+        // If not placed, restore piece
+        if (!div.parentElement && usedPieces < 3) {
+          piecesContainer.appendChild(div);
         }
       });
       return div;
@@ -220,8 +229,18 @@
 
       if (canPlace(draggedShape, row, col)) {
         placeShape(draggedShape, row, col);
+        currentPieceElement.remove();
+        usedPieces++;
+        if (usedPieces === 3) {
+          spawnPieces();
+          usedPieces = 0;
+        }
+      } else {
+        piecesContainer.appendChild(currentPieceElement);
       }
+
       draggedShape = null;
+      currentPieceElement = null;
       clearPreview();
     });
 
