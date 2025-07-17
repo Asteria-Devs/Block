@@ -35,6 +35,9 @@
     .cell.filled {
       background: #00bcd4;
     }
+    .cell.preview {
+      background: #888;
+    }
     #pieces {
       display: flex;
       gap: 20px;
@@ -67,8 +70,8 @@
     const scoreDisplay = document.getElementById('score');
     let cells = [];
     let score = 0;
+    let draggedShape = null;
 
-    // Create grid
     for (let i = 0; i < gridSize * gridSize; i++) {
       const div = document.createElement('div');
       div.classList.add('cell');
@@ -84,8 +87,6 @@
       [[1,1],[0,1]],
       [[1,1],[1,1]],
     ];
-
-    let draggedShape = null;
 
     function generatePiece(shape, id) {
       const div = document.createElement('div');
@@ -103,6 +104,7 @@
       div.addEventListener('dragstart', e => {
         draggedShape = shape;
       });
+      div.addEventListener('dragend', () => clearPreview());
       return div;
     }
 
@@ -134,23 +136,19 @@
     }
 
     function placeShape(shape, row, col) {
-      let placed = false;
       for (let r = 0; r < shape.length; r++) {
         for (let c = 0; c < shape[0].length; c++) {
           if (shape[r][c]) {
             const i = row + r;
             const j = col + c;
             cells[getIndex(i, j)].classList.add('filled');
-            placed = true;
           }
         }
       }
-      if (placed) {
-        clearLines();
-        score += 10;
-        scoreDisplay.textContent = `Score: ${score}`;
-        spawnPieces();
-      }
+      clearLines();
+      score += 10;
+      scoreDisplay.textContent = `Score: ${score}`;
+      spawnPieces();
     }
 
     function clearLines() {
@@ -172,7 +170,36 @@
       }
     }
 
-    game.addEventListener('dragover', e => e.preventDefault());
+    function clearPreview() {
+      cells.forEach(cell => cell.classList.remove('preview'));
+    }
+
+    function showPreview(shape, row, col) {
+      clearPreview();
+      if (!canPlace(shape, row, col)) return;
+      for (let r = 0; r < shape.length; r++) {
+        for (let c = 0; c < shape[0].length; c++) {
+          if (shape[r][c]) {
+            const i = row + r;
+            const j = col + c;
+            if (i < gridSize && j < gridSize) {
+              cells[getIndex(i, j)].classList.add('preview');
+            }
+          }
+        }
+      }
+    }
+
+    game.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!draggedShape) return;
+      const rect = game.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const col = Math.floor(x / 42);
+      const row = Math.floor(y / 42);
+      showPreview(draggedShape, row, col);
+    });
 
     game.addEventListener('drop', e => {
       if (!draggedShape) return;
@@ -186,6 +213,7 @@
         placeShape(draggedShape, row, col);
       }
       draggedShape = null;
+      clearPreview();
     });
 
     spawnPieces();
